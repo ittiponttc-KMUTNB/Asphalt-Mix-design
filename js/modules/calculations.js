@@ -57,6 +57,15 @@ function correctedStability(measuredLoad, correctionFactor) {
   return measuredLoad * correctionFactor;
 }
 
+// ความหนาโดยประมาณ (มม.) คำนวณย้อนกลับจากปริมาตร โดยสมมติเส้นผ่านศูนย์กลางโมลด์มาตรฐาน 101.6 มม. (4")
+// ใช้เป็นค่าอ้างอิง/แสดงผลเท่านั้น ไม่ใช้ในการหา correction factor (ซึ่งใช้ปริมาตรจริงโดยตรง แม่นยำกว่า)
+const STANDARD_MOLD_DIAMETER_MM = 101.6;
+function estimatedThicknessMm(volumeCm3) {
+  const radiusMm = STANDARD_MOLD_DIAMETER_MM / 2;
+  const areaMm2 = Math.PI * radiusMm * radiusMm;
+  return (volumeCm3 * 1000) / areaMm2;
+}
+
 // เฉลี่ยแบบตัดค่าผิดปกติอย่างง่าย (ไม่ใช้ในเวอร์ชันแรก แต่เผื่อขยาย)
 function average(arr) {
   const valid = arr.filter((v) => typeof v === 'number' && !Number.isNaN(v));

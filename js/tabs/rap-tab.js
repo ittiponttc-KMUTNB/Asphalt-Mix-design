@@ -175,9 +175,9 @@ function renderRapGradTable(combined) {
       pbByAgg: state.rapCalc.targetTotalAC,
       gmm: null,
       specimens: [
-        { weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null },
-        { weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null },
-        { weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null },
+        { weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null },
+        { weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null },
+        { weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null },
       ],
     });
     persist();

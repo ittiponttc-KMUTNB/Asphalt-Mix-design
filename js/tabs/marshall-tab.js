@@ -53,9 +53,9 @@ function renderMarshallTab() {
       pbByAgg: Math.round((lastAc + 0.5) * 10) / 10,
       gmm: null,
       specimens: [
-        { weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null },
-        { weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null },
-        { weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null },
+        { weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null },
+        { weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null },
+        { weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null },
       ],
     });
     persist();
@@ -126,7 +126,7 @@ function renderTrials() {
   wrap.querySelectorAll('[data-action="add-specimen"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const ti = parseInt(btn.dataset.trialIndex, 10);
-      state.trials[ti].specimens.push({ weightAir: null, weightSSD: null, weightWater: null, thicknessMm: null, measuredLoad: null, flow: null });
+      state.trials[ti].specimens.push({ weightAir: null, weightSSD: null, weightWater: null, measuredLoad: null, flow: null });
       persist(); renderTrials(); renderResultsSection();
     });
   });
@@ -157,11 +157,13 @@ function trialCardHtml(trial, ti) {
   const flowLabel = state.flowUnit === 'mm' ? 'มม.' : '0.01"';
   const specimenRows = trial.specimens.map((sp, si) => {
     let gmbTxt = '-', volTxt = '-', factorTxt = '-', corrTxt = '-';
+    let thickTxt = '-';
     if (sp.weightAir != null && sp.weightSSD != null && sp.weightWater != null) {
       const gmb = bulkSpecificGravity(sp.weightAir, sp.weightSSD, sp.weightWater);
       const vol = specimenVolume(sp.weightSSD, sp.weightWater);
       const factor = stabilityCorrectionFactor(vol);
       gmbTxt = fmt(gmb, 3); volTxt = fmt(vol, 1); factorTxt = fmt(factor, 2);
+      thickTxt = fmt(estimatedThicknessMm(vol), 1);
       if (sp.measuredLoad != null) corrTxt = fmt(sp.measuredLoad * factor, 0);
     }
     return `
@@ -170,13 +172,13 @@ function trialCardHtml(trial, ti) {
         <td><input type="number" step="any" data-trial-index="${ti}" data-sp-index="${si}" data-sp-field="weightAir" value="${sp.weightAir ?? ''}" /></td>
         <td><input type="number" step="any" data-trial-index="${ti}" data-sp-index="${si}" data-sp-field="weightSSD" value="${sp.weightSSD ?? ''}" /></td>
         <td><input type="number" step="any" data-trial-index="${ti}" data-sp-index="${si}" data-sp-field="weightWater" value="${sp.weightWater ?? ''}" /></td>
-        <td><input type="number" step="any" data-trial-index="${ti}" data-sp-index="${si}" data-sp-field="thicknessMm" value="${sp.thicknessMm ?? ''}" placeholder="อ้างอิง" /></td>
         <td><input type="number" step="any" data-trial-index="${ti}" data-sp-index="${si}" data-sp-field="measuredLoad" value="${sp.measuredLoad ?? ''}" /></td>
         <td><input type="number" step="any" data-trial-index="${ti}" data-sp-index="${si}" data-sp-field="flow" value="${sp.flow ?? ''}" /></td>
-        <td class="small-note">${gmbTxt}</td>
-        <td class="small-note">${volTxt}</td>
-        <td class="small-note">${factorTxt}</td>
-        <td class="small-note">${corrTxt}</td>
+        <td class="small-note" style="background:var(--surface-2)">${gmbTxt}</td>
+        <td class="small-note" style="background:var(--surface-2)">${volTxt}</td>
+        <td class="small-note" style="background:var(--surface-2)">${thickTxt}</td>
+        <td class="small-note" style="background:var(--surface-2)">${factorTxt}</td>
+        <td class="small-note" style="background:var(--surface-2)">${corrTxt}</td>
       </tr>`;
   }).join('');
 
@@ -205,9 +207,9 @@ function trialCardHtml(trial, ti) {
       <div class="table-wrap mt-8">
         <table>
           <thead><tr>
-            <th>#</th><th>Wt. Air (g)</th><th>Wt. SSD (g)</th><th>Wt. Water (g)</th><th>ความหนา (มม.)</th>
+            <th>#</th><th>นน.ชั่งในอากาศ (g)</th><th>นน.อิ่มตัวผิวแห้ง (g)</th><th>นน.ชั่งในน้ำ (g)</th>
             <th>Load วัดได้ (${state.unit})</th><th>Flow (${flowLabel})</th>
-            <th>Gmb</th><th>Vol.(cc)</th><th>Factor</th><th>Corr. Stability</th>
+            <th style="background:var(--surface-2)">Gmb</th><th style="background:var(--surface-2)">Vol.(cc)</th><th style="background:var(--surface-2)">ความหนา (มม.)</th><th style="background:var(--surface-2)">Factor</th><th style="background:var(--surface-2)">Corr. Stability</th>
           </tr></thead>
           <tbody>${specimenRows}</tbody>
         </table>

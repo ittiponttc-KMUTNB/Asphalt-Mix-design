@@ -27,7 +27,6 @@ function buildDemoProject() {
     const specimen = {
       weightAir, weightSSD,
       weightWater: Math.round(weightWater * 10) / 10,
-      thicknessMm: null,
       measuredLoad,
       flow: t.flow, // หน่วย 0.01" (flowUnit เริ่มต้นของชุดข้อมูลนี้)
     };
