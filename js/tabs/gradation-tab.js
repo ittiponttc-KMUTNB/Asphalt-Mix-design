@@ -27,7 +27,8 @@ function renderGradationTab() {
     </div>
 
     <div class="card">
-      <h3>ตารางขนาดคละ (% ผ่านตะแกรงโดยมวล)</h3>
+      <h3>ตารางขนาดคละ</h3>
+      <div class="card-desc">แต่ละตัวอย่างเลือกได้ว่าจะกรอก "% ผ่านตะแกรงตรงๆ" หรือ "น้ำหนักค้างตะแกรง (กรัม)" แล้วให้โปรแกรมคำนวณ % ผ่านให้อัตโนมัติตามวิธี ASTM C136/AASHTO T27</div>
       <div id="gradTableWrap"></div>
     </div>
 
@@ -50,7 +51,7 @@ function renderGradationTab() {
     refreshGradationChart();
   });
   $('btnAddSample').addEventListener('click', () => {
-    state.gradationSamples.push({ id: nextSampleId(), name: `ตัวอย่างที่ ${state.gradationSamples.length + 1}`, gradation: emptySample() });
+    state.gradationSamples.push(newGradationSample(nextSampleId(), `ตัวอย่างที่ ${state.gradationSamples.length + 1}`));
     persist();
     renderGradationTab();
   });
@@ -69,48 +70,88 @@ function renderGradationTab() {
 function renderGradTable() {
   const envelope = getEnvelope();
   const samples = state.gradationSamples;
-  samples.forEach((s, i) => { if (!s.id) s.id = `S-${String(i + 1).padStart(2, '0')}`; });
+  samples.forEach((s, i) => {
+    if (!s.id) s.id = `S-${String(i + 1).padStart(2, '0')}`;
+    if (!s.inputMode) s.inputMode = 'percent';
+    if (!s.retainedWeights) s.retainedWeights = emptyRetainedWeights();
+    recomputeGradationFromWeights(s);
+  });
+  const anyWeightMode = samples.some((s) => s.inputMode === 'weight');
 
   const header = samples.map((s, i) => `
     <th>
       <input data-sample-field="id" data-sample-index="${i}" value="${s.id}" style="text-align:center;font-weight:700;width:70px" title="รหัสตัวอย่าง (Sample ID)" />
-      <input data-sample-field="name" data-sample-index="${i}" value="${s.name}" style="text-align:center;margin-top:4px" title="คำอธิบาย" />
+      <input data-sample-field="name" data-sample-index="${i}" value="${s.name}" style="text-align:center;margin-top:4px" title="คำอธิบาย" /><br/>
+      <select data-sample-field="inputMode" data-sample-index="${i}" style="margin-top:4px;font-size:11px">
+        <option value="percent" ${s.inputMode === 'percent' ? 'selected' : ''}>กรอก % ผ่านตะแกรง</option>
+        <option value="weight" ${s.inputMode === 'weight' ? 'selected' : ''}>กรอกน้ำหนักค้าง (g)</option>
+      </select>
     </th>`).join('');
 
   const rows = SIEVE_SIZES.map(({ mm, label }) => {
     const cells = samples.map((s, i) => {
-      const val = s.gradation[mm];
       const range = envelope[mm];
+      const val = s.gradation[mm];
       const pass = range && val != null ? (val >= range[0] && val <= range[1]) : null;
       const cellClass = pass === true ? 'style="background:var(--success-soft)"' : pass === false ? 'style="background:var(--danger-soft)"' : '';
+      if (s.inputMode === 'weight') {
+        const w = s.retainedWeights[mm];
+        return `<td ${cellClass}>
+          <input type="number" step="any" data-sample-field="retainedWeight" data-sample-index="${i}" data-sieve="${mm}" value="${w ?? ''}" placeholder="g" />
+          <div class="small-note">→ ${val ?? '-'}%</div>
+        </td>`;
+      }
       return `<td ${cellClass}><input type="number" step="any" data-sample-field="gradation" data-sample-index="${i}" data-sieve="${mm}" value="${val ?? ''}" /></td>`;
     }).join('');
-    const range = envelope[mm];
     return `
       <tr>
         <td style="text-align:right;font-weight:600">${label}<br/><span class="small-note">${mm} มม.</span></td>
         ${cells}
-        <td class="small-note">${range ? `${range[0]} - ${range[1]}` : '-'}</td>
+        <td class="small-note">${envelope[mm] ? `${envelope[mm][0]} - ${envelope[mm][1]}` : '-'}</td>
       </tr>`;
   }).join('');
+
+  const panRow = anyWeightMode ? `
+    <tr>
+      <td style="text-align:right;font-weight:600">Pan<br/><span class="small-note">ผ่านสุดท้าย</span></td>
+      ${samples.map((s, i) => s.inputMode === 'weight'
+        ? `<td><input type="number" step="any" data-sample-field="panWeight" data-sample-index="${i}" value="${s.panWeight ?? ''}" placeholder="g" /></td>`
+        : '<td class="small-note">-</td>').join('')}
+      <td></td>
+    </tr>
+    <tr>
+      <td style="text-align:right;font-weight:600">รวมน้ำหนัก</td>
+      ${samples.map((s) => {
+        if (s.inputMode !== 'weight') return '<td class="small-note">-</td>';
+        const total = SIEVE_SIZES.reduce((a, sv) => a + (s.retainedWeights[sv.mm] || 0), 0) + (s.panWeight || 0);
+        return `<td style="font-weight:700">${total ? fmt(total, 1) + ' g' : '-'}</td>`;
+      }).join('')}
+      <td></td>
+    </tr>
+  ` : '';
 
   $('gradTableWrap').innerHTML = `
     <div class="table-wrap">
       <table>
         <thead><tr><th>ตะแกรง</th>${header}<th>ช่วงมาตรฐาน (Desired)</th></tr></thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows}${panRow}</tbody>
       </table>
     </div>
-    <div class="small-note mt-8">ช่องสีเขียว = อยู่ในช่วงมาตรฐาน, ช่องสีแดง = อยู่นอกช่วงมาตรฐาน · แถวหัวตาราง: บรรทัดบน = รหัสตัวอย่าง (Sample ID), บรรทัดล่าง = คำอธิบาย</div>
+    <div class="small-note mt-8">ช่องสีเขียว = อยู่ในช่วงมาตรฐาน, ช่องสีแดง = อยู่นอกช่วงมาตรฐาน · โหมด "น้ำหนักค้าง" จะคำนวณ % ผ่านให้อัตโนมัติ (แสดงใต้ช่องกรอก) จากน้ำหนักรวมทุกตะแกรง + Pan</div>
   `;
 
   $('gradTableWrap').querySelectorAll('[data-sample-field]').forEach((el) => {
     el.addEventListener('change', () => {
       const i = parseInt(el.dataset.sampleIndex, 10);
       const field = el.dataset.sampleField;
-      if (field === 'id') samples[i].id = el.value.trim() || samples[i].id;
-      else if (field === 'name') samples[i].name = el.value;
-      else if (field === 'gradation') samples[i].gradation[el.dataset.sieve] = el.value === '' ? null : parseFloat(el.value);
+      const s = samples[i];
+      if (field === 'id') s.id = el.value.trim() || s.id;
+      else if (field === 'name') s.name = el.value;
+      else if (field === 'inputMode') s.inputMode = el.value;
+      else if (field === 'gradation') s.gradation[el.dataset.sieve] = el.value === '' ? null : parseFloat(el.value);
+      else if (field === 'retainedWeight') s.retainedWeights[el.dataset.sieve] = el.value === '' ? null : parseFloat(el.value);
+      else if (field === 'panWeight') s.panWeight = el.value === '' ? null : parseFloat(el.value);
+      recomputeGradationFromWeights(s);
       persist();
       renderGradTable();
       refreshGradationChart();

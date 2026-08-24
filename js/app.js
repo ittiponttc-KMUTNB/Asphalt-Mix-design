@@ -21,6 +21,28 @@ function emptySample() {
   return gradation;
 }
 
+function emptyRetainedWeights() {
+  const w = {};
+  SIEVE_SIZES.forEach(({ mm }) => { w[mm] = null; });
+  return w;
+}
+
+function newGradationSample(id, name) {
+  return { id, name, inputMode: 'percent', gradation: emptySample(), retainedWeights: emptyRetainedWeights(), panWeight: null };
+}
+
+/** คำนวณ % ผ่านตะแกรงจากน้ำหนักค้างตะแกรง (ASTM C136/AASHTO T27) แล้วเขียนทับ sample.gradation */
+function recomputeGradationFromWeights(sample) {
+  if (sample.inputMode !== 'weight') return;
+  const total = SIEVE_SIZES.reduce((a, s) => a + (sample.retainedWeights[s.mm] || 0), 0) + (sample.panWeight || 0);
+  if (!total) return;
+  let cumulative = 0;
+  SIEVE_SIZES.forEach(({ mm }) => { // เรียงใหญ่->เล็กอยู่แล้วใน SIEVE_SIZES
+    cumulative += sample.retainedWeights[mm] || 0;
+    sample.gradation[mm] = Math.round((100 - (cumulative / total) * 100) * 10) / 10;
+  });
+}
+
 function nextSampleId() {
   const n = (state.gradationSamples?.length || 0) + 1;
   return `S-${String(n).padStart(2, '0')}`;
@@ -37,12 +59,17 @@ function emptyProject() {
     sampleLabel: '',
     standard: std,
     criteria,
-    gradationSamples: [{ id: 'S-01', name: 'ตัวอย่างที่ 1', gradation: emptySample() }],
+    gradationSamples: [newGradationSample('S-01', 'ตัวอย่างที่ 1')],
     aggregate: { gsb: null, gb: 1.02, penetrationGrade: '60-70' },
     trials: [],
     moistureTest: { controlStability: [], conditionedStability: [] },
     designAC: null,
-    rapCalc: { ingredients: [], targetTotalAC: null },
+    rapCalc: {
+      ingredients: [],
+      targetTotalAC: null,
+      ra5Percent: 0,
+      batching: { specimenWeight: 1200, rapPercent: null, rapOwnAC: null, targetAC: null, ra5Percent: null },
+    },
   };
 }
 

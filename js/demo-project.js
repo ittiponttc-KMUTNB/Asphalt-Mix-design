@@ -54,17 +54,26 @@ function buildDemoProject() {
       {
         id: 'S-01',
         name: 'Hot Bin ผสม (ตัวอย่างอ้างอิง)',
+        inputMode: 'percent',
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 83.0, 9.5: 57.2, 4.75: 44.6, 2.36: 32.7, 1.18: 22.8, 0.6: 15.3, 0.3: 9.8, 0.15: 6.7, 0.075: 5.3 },
+        retainedWeights: emptyRetainedWeights(),
+        panWeight: null,
       },
       {
         id: 'S-02',
         name: 'มวลรวมใหม่ (Virgin Aggregate)',
+        inputMode: 'percent',
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 92.0, 9.5: 68.0, 4.75: 50.0, 2.36: 34.0, 1.18: 22.0, 0.6: 14.0, 0.3: 9.0, 0.15: 6.0, 0.075: 4.5 },
+        retainedWeights: emptyRetainedWeights(),
+        panWeight: null,
       },
       {
         id: 'S-03',
         name: 'RAP (มวลรวมสกัดแล้ว)',
+        inputMode: 'weight',
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 95.0, 9.5: 85.0, 4.75: 60.0, 2.36: 40.0, 1.18: 28.0, 0.6: 20.0, 0.3: 14.0, 0.15: 9.0, 0.075: 6.0 },
+        retainedWeights: { 37.5: null, 25: null, 19: null, 12.5: 60, 9.5: 120, 4.75: 300, 2.36: 240, 1.18: 144, 0.6: 96, 0.3: 72, 0.15: 60, 0.075: 36 },
+        panWeight: 72,
       },
     ],
     aggregate: { gsb: 2.663, gb: 1.02, penetrationGrade: '40-50' },
@@ -80,6 +89,9 @@ function buildDemoProject() {
         { sampleId: 'S-03', proportion: 40, ownAC: 4.8 },
       ],
       targetTotalAC: 5.2,
+      ra5Percent: 0.26,
+      // ตัวอย่างสาธิตอ้างอิงสูตรที่ 3 (75% RAP) ทางหลวงหมายเลข 332 — ยืนยันสูตร Virgin AC = Target - RAPOldBinder - RA5
+      batching: { specimenWeight: 1200, rapPercent: 75, rapOwnAC: 4.48, targetAC: 5.0, ra5Percent: 0.26 },
     },
   };
 }
