@@ -1,7 +1,9 @@
-/** แอปหลัก: state, การนำทาง, และการ render แต่ละแท็บ */
+/** แอปหลัก: state, การนำทาง, และการ render แต่ละแท็บ
+ * ขอบเขต: เครื่องมือวิเคราะห์สำหรับงานวิจัย (ไม่มีข้อมูลโครงการ/รายงานราชการ)
+ */
 
 let state = null;
-let activeTab = 'project';
+let activeTab = 'gradation';
 
 function $(id) { return document.getElementById(id); }
 function fmt(v, d = 2) { return v == null || Number.isNaN(v) ? '-' : Number(v).toFixed(d); }
@@ -13,72 +15,88 @@ function showToast(msg) {
 }
 function persist() { autosave(state); }
 
+function emptySample() {
+  const gradation = {};
+  SIEVE_SIZES.forEach(({ mm }) => { gradation[mm] = null; });
+  return gradation;
+}
+
 function emptyProject() {
   const std = cloneStandardDefaults();
+  const criteria = { ...std.designCriteria.wearing_9_5 };
   return {
-    meta: {
-      projectName: '', highwaySection: '', contractNo: '', testNo: '', sourceOfMaterial: '',
-      mixingPlant: '', sampleOwner: '', designer: '', officeName: '', dateReceived: '',
-      courseType: 'wearing_9_5', unit: 'lbs', testMethod: 'Marshall Test 75 blows',
-    },
+    courseType: 'wearing_9_5',
+    unit: 'lbs',
+    flowUnit: '0.01in',
     standard: std,
-    criteriaOverride: {},
-    coldBin: { bins: [{ name: 'Bin 1', proportion: 100, gradation: {} }] },
-    hotBin: { bins: [{ name: 'Hot Bin 1', proportion: 100, gradation: {} }] },
-    aggregateProperties: {
-      fractions: [{ name: 'Hot Bin 1', bulkSG: null, apparentSG: null, waterAbsorption: null, flakiness: null, elongation: null }],
-      combined: { bulkSG: null, apparentSG: null, effectiveSG: null },
-      quality: {},
-    },
-    asphalt: { penetrationGrade: '60-70', specificGravity: 1.02 },
+    criteria,
+    gradationSamples: [{ name: 'ตัวอย่างที่ 1', gradation: emptySample() }],
+    aggregate: { gsb: null, gb: 1.02, penetrationGrade: '60-70' },
     trials: [],
     moistureTest: { controlStability: [], conditionedStability: [] },
     designAC: null,
   };
 }
 
-function getCriteria() {
-  const base = state.standard.designCriteria[state.meta.courseType];
-  return { ...base, ...(state.criteriaOverride || {}) };
+function ensureCriteriaDefaults() {
+  const base = state.standard.designCriteria[state.courseType];
+  state.criteria = { ...base, ...(state.criteria || {}) };
+  if (state.criteria.acTolerance == null) state.criteria.acTolerance = state.standard.jobMixTolerance.acContent;
 }
-function getEnvelope() { return state.standard.gradationEnvelope[state.meta.courseType]; }
-function getACRange() { return state.standard.acContentRange[state.meta.courseType]; }
+
+function getCriteria() { return state.criteria; }
+function getEnvelope() { return state.standard.gradationEnvelope[state.courseType]; }
+function getACRange() { return state.standard.acContentRange[state.courseType]; }
 
 function init() {
   const saved = loadAutosave();
   state = saved || buildDemoProject();
+  ensureCriteriaDefaults();
+
   document.querySelectorAll('.nav-item').forEach((item) => {
     item.addEventListener('click', () => switchTab(item.dataset.tab));
   });
   $('btnNewProject').addEventListener('click', () => {
-    if (confirm('เริ่มโปรเจกต์ใหม่? ข้อมูลปัจจุบันที่ยังไม่บันทึกจะหายไป')) {
+    if (confirm('เริ่มชุดข้อมูลใหม่? ข้อมูลปัจจุบันที่ยังไม่ได้ export จะหายไป')) {
       state = emptyProject();
       persist();
-      switchTab('project');
-      showToast('เริ่มโปรเจกต์ใหม่แล้ว');
+      switchTab('gradation');
+      showToast('เริ่มชุดข้อมูลใหม่แล้ว');
     }
   });
   $('btnLoadDemo').addEventListener('click', () => {
     state = buildDemoProject();
+    ensureCriteriaDefaults();
     persist();
-    switchTab('project');
+    switchTab('gradation');
     showToast('โหลดตัวอย่างอ้างอิงแล้ว');
   });
   $('btnSaveProject').addEventListener('click', () => {
-    const name = state.meta.testNo || state.meta.projectName || `project-${Date.now()}`;
-    saveProjectToLibrary(name, state);
-    showToast(`บันทึกโปรเจกต์ "${name}" แล้ว`);
+    exportProjectAsFile(state, `mixdesign-data-${Date.now()}.json`);
+    showToast('บันทึกไฟล์ข้อมูล (.json) แล้ว');
   });
-  switchTab('project');
+  $('importFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      state = await importProjectFromFile(file);
+      ensureCriteriaDefaults();
+      persist();
+      switchTab('gradation');
+      showToast('นำเข้าข้อมูลสำเร็จ');
+    } catch (err) {
+      showToast('นำเข้าไฟล์ไม่สำเร็จ: รูปแบบไฟล์ไม่ถูกต้อง');
+    }
+    e.target.value = '';
+  });
+  $('btnImportProject').addEventListener('click', () => $('importFileInput').click());
+
+  switchTab('gradation');
 }
 
 const TAB_META = {
-  project: ['ข้อมูลโครงการ', 'กรอกข้อมูลพื้นฐานของโครงการและเลือกชั้นทางที่จะออกแบบ'],
-  gradation: ['ออกแบบขนาดคละมวลรวม', 'กำหนดสัดส่วนผสม Cold Bin และ Hot Bin เทียบกับช่วงมาตรฐาน'],
-  aggregate: ['คุณสมบัติมวลรวมและยางแอสฟัลท์', 'ค่าความถ่วงจำเพาะและคุณภาพมวลรวมแต่ละส่วน'],
-  specimen: ['ข้อมูล Marshall Specimen', 'กรอกผลทดสอบตัวอย่างที่ %AC ต่างๆ'],
-  results: ['ผลลัพธ์และการหา OAC', 'กราฟความสัมพันธ์และปริมาณแอสฟัลท์ที่เหมาะสม'],
-  report: ['รายงาน / Export', 'สรุปผล Job-Mix Formula พร้อมพิมพ์หรือส่งออก'],
+  gradation: ['วิเคราะห์ขนาดคละมวลรวม', 'เทียบขนาดคละกับช่วงมาตรฐาน พล็อตกราฟและ export ได้'],
+  marshall: ['Marshall Test & Optimum Asphalt Content', 'คำนวณ Stability/Flow/Va/VMA/VFA และหา OAC พร้อม export'],
 };
 
 function switchTab(tab) {
@@ -89,35 +107,31 @@ function switchTab(tab) {
   const [title, desc] = TAB_META[tab];
   $('pageTitle').textContent = title;
   $('pageDesc').textContent = desc;
-  $('courseBadge').textContent = COURSE_TYPES[state.meta.courseType]?.label || '-';
+  $('courseBadge').textContent = COURSE_TYPES[state.courseType]?.label || '-';
   renderTab(tab);
 }
 
 function renderTab(tab) {
-  if (tab === 'project') renderProjectTab();
   if (tab === 'gradation') renderGradationTab();
-  if (tab === 'aggregate') renderAggregateTab();
-  if (tab === 'specimen') renderSpecimenTab();
-  if (tab === 'results') renderResultsTab();
-  if (tab === 'report') renderReportTab();
+  if (tab === 'marshall') renderMarshallTab();
 }
 
 function computeTrialResult(trial) {
-  const gb = state.asphalt.specificGravity;
-  const gsb = state.aggregateProperties.combined.bulkSG;
-  return calculateAtAcLevel({ pbByAgg: trial.pbByAgg, specimens: trial.specimens, gmm: trial.gmm, gsb, gb });
+  const gb = state.aggregate.gb;
+  const gsb = state.aggregate.gsb;
+  const specimens = trial.specimens.map((s) => ({ ...s, flow: flowToUnit001(s.flow, state.flowUnit) }));
+  return calculateAtAcLevel({ pbByAgg: trial.pbByAgg, specimens, gmm: trial.gmm, gsb, gb });
 }
 
 function computeAllResults() {
-  const gsb = state.aggregateProperties.combined.bulkSG;
-  const gb = state.asphalt.specificGravity;
+  const gsb = state.aggregate.gsb;
+  const gb = state.aggregate.gb;
   if (!gsb || !gb) return [];
   return state.trials
     .filter((t) => t.pbByAgg != null && t.gmm && t.specimens.some((s) => s.weightAir && s.weightSSD != null && s.weightWater != null))
     .map((t) => {
       try {
-        const r = computeTrialResult(t);
-        return { ac: t.pbByAgg, ...r };
+        return { ac: t.pbByAgg, ...computeTrialResult(t) };
       } catch (e) { return null; }
     })
     .filter(Boolean)

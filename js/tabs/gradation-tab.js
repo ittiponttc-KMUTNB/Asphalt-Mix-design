@@ -1,119 +1,118 @@
 function renderGradationTab() {
+  const courseOptions = Object.entries(COURSE_TYPES)
+    .map(([key, c]) => `<option value="${key}" ${state.courseType === key ? 'selected' : ''}>${c.label}</option>`)
+    .join('');
+
   $('gradationContainer').innerHTML = `
     <div class="card">
-      <h3>Cold Bin (สัดส่วนกองวัสดุ / ป้อนเข้าโรงผสม)</h3>
-      <div id="coldBinTableWrap"></div>
-    </div>
-    <div class="card">
-      <h3>Hot Bin (หลังคัดกรองในโรงผสม)</h3>
-      <div id="hotBinTableWrap"></div>
-    </div>
-    <div class="card">
-      <h3>กราฟขนาดคละ (0.45 Power Chart)</h3>
-      <div class="grid grid-2">
-        <div><div class="small-note mb-0">Cold Bin</div><div class="chart-box"><canvas id="gradationChartCold"></canvas></div></div>
-        <div><div class="small-note mb-0">Hot Bin</div><div class="chart-box"><canvas id="gradationChartHot"></canvas></div></div>
+      <div class="grid grid-3">
+        <div class="field"><label>ชั้นทาง / มาตรฐานอ้างอิงสำหรับเทียบ (ทล.-ม. 408/2532)</label>
+          <select id="gradCourseType">${courseOptions}</select>
+        </div>
+        <div class="field" style="align-self:end">
+          <button class="btn btn-ghost btn-sm" id="btnAddSample">+ เพิ่มตัวอย่าง</button>
+          <button class="btn btn-ghost btn-sm" id="btnRemoveSample">- ลบตัวอย่างล่าสุด</button>
+        </div>
+        <div class="field" style="align-self:end">
+          <button class="btn btn-primary btn-sm" id="btnExportGradCsv">⬇ Export CSV</button>
+          <button class="btn btn-primary btn-sm" id="btnExportGradPng">🖼 Export PNG</button>
+        </div>
       </div>
     </div>
+
+    <div class="card">
+      <h3>ตารางขนาดคละ (% ผ่านตะแกรงโดยมวล)</h3>
+      <div id="gradTableWrap"></div>
+    </div>
+
+    <div class="card">
+      <h3>กราฟขนาดคละ (0.45 Power Chart)</h3>
+      <div class="chart-box" style="height:400px;"><canvas id="gradationCompareChart"></canvas></div>
+    </div>
   `;
-  renderBinTable('cold', state.coldBin.bins, 'coldBinTableWrap', false);
-  renderBinTable('hot', state.hotBin.bins, 'hotBinTableWrap', true);
-  refreshGradationCharts();
+
+  $('gradCourseType').addEventListener('change', (e) => {
+    state.courseType = e.target.value;
+    ensureCriteriaDefaults();
+    persist();
+    $('courseBadge').textContent = COURSE_TYPES[state.courseType]?.label || '-';
+    renderGradationTab();
+  });
+  $('btnAddSample').addEventListener('click', () => {
+    state.gradationSamples.push({ name: `ตัวอย่างที่ ${state.gradationSamples.length + 1}`, gradation: emptySample() });
+    persist();
+    renderGradationTab();
+  });
+  $('btnRemoveSample').addEventListener('click', () => {
+    if (state.gradationSamples.length > 1) state.gradationSamples.pop();
+    persist();
+    renderGradationTab();
+  });
+  $('btnExportGradCsv').addEventListener('click', exportGradationCsv);
+  $('btnExportGradPng').addEventListener('click', () => downloadChartPng('gradationCompareChart', 'gradation-chart.png'));
+
+  renderGradTable();
+  refreshGradationChart();
 }
 
-function renderBinTable(kind, bins, wrapId, showTolerant) {
+function renderGradTable() {
   const envelope = getEnvelope();
-  const combined = combinedGradation(bins, SIEVE_SIZES);
-  const envCheck = checkEnvelope(combined, envelope);
-  const sumOk = validateProportionSum(bins);
-  const tolerant = showTolerant ? toleranceBand(combined, SIEVE_SIZES) : null;
+  const samples = state.gradationSamples;
 
-  const header = bins.map((b, i) => `
-    <th>
-      <input data-bin-field="name" data-bin-index="${i}" value="${b.name}" style="text-align:center;font-weight:700" />
-    </th>`).join('');
+  const header = samples.map((s, i) => `<th><input data-sample-field="name" data-sample-index="${i}" value="${s.name}" style="text-align:center;font-weight:700" /></th>`).join('');
 
-  const propRow = bins.map((b, i) => `
-    <td><input type="number" step="any" data-bin-field="proportion" data-bin-index="${i}" value="${b.proportion ?? ''}" /></td>
-  `).join('');
-
-  const sieveRows = SIEVE_SIZES.map(({ mm, label }) => {
-    const cells = bins.map((b, i) => `
-      <td><input type="number" step="any" data-bin-field="gradation" data-bin-index="${i}" data-sieve="${mm}" value="${b.gradation[mm] ?? ''}" /></td>
-    `).join('');
-    const c = combined[mm];
-    const ev = envCheck[mm];
-    const evCell = ev ? `<span class="pill ${ev.pass ? 'pill-pass' : 'pill-fail'}">${ev.min}-${ev.max}</span>` : '<span class="small-note">-</span>';
-    const tolCell = tolerant
-      ? (tolerant[mm] ? `${fmt(tolerant[mm][0], 1)} - ${fmt(tolerant[mm][1], 1)}` : '-')
-      : '';
+  const rows = SIEVE_SIZES.map(({ mm, label }) => {
+    const cells = samples.map((s, i) => {
+      const val = s.gradation[mm];
+      const range = envelope[mm];
+      const pass = range && val != null ? (val >= range[0] && val <= range[1]) : null;
+      const cellClass = pass === true ? 'style="background:var(--success-soft)"' : pass === false ? 'style="background:var(--danger-soft)"' : '';
+      return `<td ${cellClass}><input type="number" step="any" data-sample-field="gradation" data-sample-index="${i}" data-sieve="${mm}" value="${val ?? ''}" /></td>`;
+    }).join('');
+    const range = envelope[mm];
     return `
       <tr>
         <td style="text-align:right;font-weight:600">${label}<br/><span class="small-note">${mm} มม.</span></td>
         ${cells}
-        <td style="font-weight:700">${c ?? '-'}</td>
-        <td>${evCell}</td>
-        ${showTolerant ? `<td>${tolCell}</td>` : ''}
+        <td class="small-note">${range ? `${range[0]} - ${range[1]}` : '-'}</td>
       </tr>`;
   }).join('');
 
-  $(wrapId).innerHTML = `
-    <div class="flex-between mt-8" style="margin-bottom:8px;">
-      <span class="pill ${sumOk ? 'pill-pass' : 'pill-fail'}">รวมสัดส่วน ${bins.reduce((a, b) => a + (b.proportion || 0), 0).toFixed(1)}%</span>
-      <div class="flex">
-        <button class="btn btn-ghost btn-sm" data-action="add-bin">+ เพิ่มกอง/Bin</button>
-        <button class="btn btn-ghost btn-sm" data-action="remove-bin">- ลบกองล่าสุด</button>
-      </div>
-    </div>
+  $('gradTableWrap').innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr><th>ตะแกรง</th>${header}<th>Comb'd</th><th>Desired</th>${showTolerant ? '<th>Tolerant Limit</th>' : ''}</tr>
-        </thead>
-        <tbody>
-          <tr><td style="text-align:right;font-weight:600">Mix Proportion (%)</td>${propRow}<td></td><td></td>${showTolerant ? '<td></td>' : ''}</tr>
-          ${sieveRows}
-        </tbody>
+        <thead><tr><th>ตะแกรง</th>${header}<th>ช่วงมาตรฐาน (Desired)</th></tr></thead>
+        <tbody>${rows}</tbody>
       </table>
     </div>
+    <div class="small-note mt-8">ช่องสีเขียว = อยู่ในช่วงมาตรฐาน, ช่องสีแดง = อยู่นอกช่วงมาตรฐาน</div>
   `;
 
-  $(wrapId).querySelectorAll('[data-bin-field]').forEach((el) => {
+  $('gradTableWrap').querySelectorAll('[data-sample-field]').forEach((el) => {
     el.addEventListener('change', () => {
-      const idx = parseInt(el.dataset.binIndex, 10);
-      const field = el.dataset.binField;
-      if (field === 'name') bins[idx].name = el.value;
-      else if (field === 'proportion') bins[idx].proportion = parseFloat(el.value) || 0;
-      else if (field === 'gradation') {
-        const mm = el.dataset.sieve;
-        bins[idx].gradation[mm] = el.value === '' ? null : parseFloat(el.value);
-      }
+      const i = parseInt(el.dataset.sampleIndex, 10);
+      const field = el.dataset.sampleField;
+      if (field === 'name') samples[i].name = el.value;
+      else if (field === 'gradation') samples[i].gradation[el.dataset.sieve] = el.value === '' ? null : parseFloat(el.value);
       persist();
-      renderBinTable(kind, bins, wrapId, showTolerant);
-      refreshGradationCharts();
+      renderGradTable();
+      refreshGradationChart();
     });
-  });
-
-  $(wrapId).querySelector('[data-action="add-bin"]').addEventListener('click', () => {
-    const gradation = {};
-    SIEVE_SIZES.forEach(({ mm }) => { gradation[mm] = null; });
-    bins.push({ name: `Bin ${bins.length + 1}`, proportion: 0, gradation });
-    persist();
-    renderBinTable(kind, bins, wrapId, showTolerant);
-    refreshGradationCharts();
-  });
-  $(wrapId).querySelector('[data-action="remove-bin"]').addEventListener('click', () => {
-    if (bins.length > 1) bins.pop();
-    persist();
-    renderBinTable(kind, bins, wrapId, showTolerant);
-    refreshGradationCharts();
   });
 }
 
-function refreshGradationCharts() {
+function refreshGradationChart() {
+  drawGradationCompareChart('gradationCompareChart', { samples: state.gradationSamples, envelope: getEnvelope(), sieveSizes: SIEVE_SIZES });
+}
+
+function exportGradationCsv() {
   const envelope = getEnvelope();
-  const combinedCold = combinedGradation(state.coldBin.bins, SIEVE_SIZES);
-  const combinedHot = combinedGradation(state.hotBin.bins, SIEVE_SIZES);
-  drawGradationChart('gradationChartCold', { combined: combinedCold, envelope, sieveSizes: SIEVE_SIZES });
-  drawGradationChart('gradationChartHot', { combined: combinedHot, envelope, sieveSizes: SIEVE_SIZES });
+  const samples = state.gradationSamples;
+  const header = ['Sieve (mm)', 'Sieve Label', ...samples.map((s) => s.name), 'Spec Min', 'Spec Max'];
+  const rows = [header];
+  SIEVE_SIZES.forEach(({ mm, label }) => {
+    const range = envelope[mm] || [null, null];
+    rows.push([mm, label, ...samples.map((s) => s.gradation[mm] ?? ''), range[0] ?? '', range[1] ?? '']);
+  });
+  downloadCSV('gradation-data.csv', rows);
 }

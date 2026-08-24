@@ -90,16 +90,13 @@ function drawMarshallChart(canvasId, { title, yLabel, dataPoints, fitFn, xRange,
   });
 }
 
-function drawGradationChart(canvasId, { combined, envelope, sieveSizes }) {
+const SAMPLE_COLORS = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
+
+/** เปรียบเทียบหลายตัวอย่างขนาดคละในกราฟเดียว พร้อมแถบ envelope มาตรฐาน */
+function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes }) {
   destroyChart(canvasId);
   const ctx = document.getElementById(canvasId).getContext('2d');
-  // 0.45 power chart: x = mm^0.45
   const p045 = (mm) => Math.pow(mm, 0.45);
-
-  const combinedPts = sieveSizes
-    .filter(({ mm }) => typeof combined[mm] === 'number')
-    .map(({ mm }) => ({ x: p045(mm), y: combined[mm] }))
-    .sort((a, b) => a.x - b.x);
 
   const upperPts = [];
   const lowerPts = [];
@@ -113,15 +110,23 @@ function drawGradationChart(canvasId, { combined, envelope, sieveSizes }) {
   upperPts.sort((a, b) => a.x - b.x);
   lowerPts.sort((a, b) => a.x - b.x);
 
+  const datasets = [
+    { label: 'ขอบบน (มาตรฐาน)', data: upperPts, borderColor: '#94a3b8', backgroundColor: 'rgba(148,163,184,0.08)', borderDash: [5, 4], pointRadius: 0, borderWidth: 1.5, fill: '+1' },
+    { label: 'ขอบล่าง (มาตรฐาน)', data: lowerPts, borderColor: '#94a3b8', pointRadius: 0, borderDash: [5, 4], borderWidth: 1.5, fill: false },
+  ];
+
+  samples.forEach((s, i) => {
+    const color = SAMPLE_COLORS[i % SAMPLE_COLORS.length];
+    const pts = sieveSizes
+      .filter(({ mm }) => typeof s.gradation[mm] === 'number')
+      .map(({ mm }) => ({ x: p045(mm), y: s.gradation[mm] }))
+      .sort((a, b) => a.x - b.x);
+    datasets.push({ label: s.name, data: pts, borderColor: color, backgroundColor: color, pointRadius: 4, borderWidth: 2, tension: 0.1 });
+  });
+
   chartInstances[canvasId] = new Chart(ctx, {
     type: 'line',
-    data: {
-      datasets: [
-        { label: 'ขนาดคละผสม (Combined)', data: combinedPts, borderColor: '#2563eb', backgroundColor: '#2563eb', pointRadius: 4, borderWidth: 2, tension: 0.1 },
-        { label: 'ขอบบน (Max)', data: upperPts, borderColor: '#dc2626', borderDash: [5, 4], pointRadius: 0, borderWidth: 1.5 },
-        { label: 'ขอบล่าง (Min)', data: lowerPts, borderColor: '#dc2626', borderDash: [5, 4], pointRadius: 0, borderWidth: 1.5 },
-      ],
-    },
+    data: { datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -143,3 +148,4 @@ function drawGradationChart(canvasId, { combined, envelope, sieveSizes }) {
     },
   });
 }
+
