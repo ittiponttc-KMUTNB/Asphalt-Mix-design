@@ -1,0 +1,11 @@
+# เอกสารอ้างอิงส่วนตัว (ไม่จำเป็นต้องอยู่ใน repo)
+*.pdf
+*.jpg
+*.jpeg
+*.png
+!docs/**
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log

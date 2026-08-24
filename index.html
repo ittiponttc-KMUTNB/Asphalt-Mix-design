@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>โปรแกรมออกแบบส่วนผสม Asphalt Concrete (Marshall Mix Design)</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">AC</div>
+      <div class="brand-text">
+        <div class="title">HMA Mix Design</div>
+        <div class="subtitle">Marshall Method · ทล.-ม. 408/2532</div>
+      </div>
+    </div>
+
+    <div class="nav-item active" data-tab="project"><span class="num">1</span> ข้อมูลโครงการ</div>
+    <div class="nav-item" data-tab="gradation"><span class="num">2</span> ออกแบบขนาดคละมวลรวม</div>
+    <div class="nav-item" data-tab="aggregate"><span class="num">3</span> คุณสมบัติมวลรวม/ยาง</div>
+    <div class="nav-item" data-tab="specimen"><span class="num">4</span> ข้อมูล Marshall Specimen</div>
+    <div class="nav-item" data-tab="results"><span class="num">5</span> ผลลัพธ์และ OAC</div>
+    <div class="nav-item" data-tab="report"><span class="num">6</span> รายงาน / Export</div>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" id="btnNewProject">+ โปรเจกต์ใหม่</button>
+      <button class="btn btn-ghost btn-sm" id="btnLoadDemo">โหลดตัวอย่างอ้างอิง</button>
+      <button class="btn btn-primary btn-sm" id="btnSaveProject">บันทึกโปรเจกต์</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">ข้อมูลโครงการ</h1>
+        <div class="desc" id="pageDesc">กรอกข้อมูลพื้นฐานของโครงการและเลือกชั้นทางที่จะออกแบบ</div>
+      </div>
+      <span class="badge-course" id="courseBadge">-</span>
+    </div>
+
+    <div class="tabs-content">
+      <section id="tab-project" class="active"><div id="projectContainer"></div></section>
+      <section id="tab-gradation"><div id="gradationContainer"></div></section>
+      <section id="tab-aggregate"><div id="aggregateContainer"></div></section>
+      <section id="tab-specimen"><div id="specimenContainer"></div></section>
+      <section id="tab-results"><div id="resultsContainer"></div></section>
+      <section id="tab-report"><div id="reportContainer"></div></section>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="importFileInput" accept="application/json" style="display:none" />
+
+<script src="lib/chart.umd.min.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/html2canvas.min.js"></script>
+<script src="js/data/doh-408-2532.js"></script>
+<script src="js/modules/calculations.js"></script>
+<script src="js/modules/oac.js"></script>
+<script src="js/modules/gradation.js"></script>
+<script src="js/charts/chart-helpers.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/demo-project.js"></script>
+<script src="js/app.js"></script>
+<script src="js/tabs/project-tab.js"></script>
+<script src="js/tabs/gradation-tab.js"></script>
+<script src="js/tabs/aggregate-tab.js"></script>
+<script src="js/tabs/specimen-tab.js"></script>
+<script src="js/tabs/results-tab.js"></script>
+<script src="js/tabs/report-tab.js"></script>
+</body>
+</html>
