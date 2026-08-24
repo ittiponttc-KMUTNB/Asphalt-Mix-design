@@ -254,7 +254,9 @@ function renderMoistureTest() {
 
 function buildCurves(results) {
   const xs = results.map((r) => r.ac);
-  const degree = Math.min(3, xs.length - 1);
+  // ใช้ดีกรี 2 (quadratic) เป็นค่าเริ่มต้น — คุณสมบัติ Marshall แต่ละเส้นมีจุดสูงสุด/ต่ำสุดเดียวตามธรรมชาติ
+  // ดีกรีสูงกว่านี้กับข้อมูลแค่ไม่กี่จุดจะ overfit จนเส้นบิดเป็นคลื่นไม่เนียนเหมือนกราฟที่วาดด้วยมือ
+  const degree = Math.min(2, xs.length - 1);
   return {
     xs,
     acRange: [Math.min(...xs), Math.max(...xs)],
