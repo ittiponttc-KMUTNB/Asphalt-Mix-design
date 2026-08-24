@@ -1,5 +1,12 @@
+@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/sarabun-400-thai.woff2') format('woff2'); unicode-range: U+0E01-0E5B, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/sarabun-400-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F, U+2122; }
+@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/sarabun-600-thai.woff2') format('woff2'); unicode-range: U+0E01-0E5B, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/sarabun-600-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F, U+2122; }
+@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/sarabun-700-thai.woff2') format('woff2'); unicode-range: U+0E01-0E5B, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/sarabun-700-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F, U+2122; }
+
 :root {
-  --bg: #f1f5f9;
+  --bg: #eef1f7;
   --surface: #ffffff;
   --surface-2: #f8fafc;
   --border: #e2e8f0;
@@ -13,8 +20,9 @@
   --danger: #dc2626;
   --danger-soft: #fef2f2;
   --warning: #d97706;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.10);
   font-family: 'Sarabun', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
 }
 
@@ -25,7 +33,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app-shell {
@@ -92,6 +101,16 @@ body {
   display: flex; flex-direction: column; gap: 6px;
 }
 
+.credit-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: #64748b;
+}
+.credit-footer .name { color: #94a3b8; font-weight: 600; }
+
 /* ---------- Main ---------- */
 .main {
   padding: 22px 28px 60px;
@@ -125,9 +144,11 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px 20px;
-  margin-bottom: 18px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  transition: box-shadow .18s ease;
 }
+.card:hover { box-shadow: var(--shadow-lg); }
 .card h2 { font-size: 15px; margin: 0 0 4px; }
 .card h3 { font-size: 13.5px; margin: 0 0 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
 .card .card-desc { color: var(--text-muted); font-size: 12.5px; margin-bottom: 14px; }

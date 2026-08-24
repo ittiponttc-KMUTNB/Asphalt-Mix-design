@@ -3,6 +3,7 @@ function renderMarshallTab() {
     <div class="card">
       <h3>ค่าพื้นฐานสำหรับการคำนวณ</h3>
       <div class="grid grid-4">
+        <div class="field"><label>รหัสตัวอย่าง (Sample ID)</label><input id="mSampleLabel" value="${state.sampleLabel ?? ''}" placeholder="เช่น MIX-A, S-01" /></div>
         <div class="field"><label>Bulk Sp.Gr. มวลรวมผสม (Gsb)</label><input type="number" step="any" id="mGsb" value="${state.aggregate.gsb ?? ''}" /></div>
         <div class="field"><label>Sp.Gr. ยางแอสฟัลท์ (Gb)</label><input type="number" step="any" id="mGb" value="${state.aggregate.gb ?? ''}" /></div>
         <div class="field"><label>หน่วยแรง Stability</label>
@@ -40,6 +41,7 @@ function renderMarshallTab() {
     <div id="resultsWrap"></div>
   `;
 
+  $('mSampleLabel').addEventListener('change', (e) => { state.sampleLabel = e.target.value; persist(); });
   $('mGsb').addEventListener('change', (e) => { state.aggregate.gsb = parseFloat(e.target.value) || null; persist(); renderMarshallTab(); });
   $('mGb').addEventListener('change', (e) => { state.aggregate.gb = parseFloat(e.target.value) || null; persist(); renderMarshallTab(); });
   $('mUnit').addEventListener('change', (e) => { state.unit = e.target.value; ensureCriteriaDefaults(); persist(); renderMarshallTab(); });
@@ -330,8 +332,13 @@ function renderResultsSection() {
   $('btnUseSuggested').addEventListener('click', () => { state.designAC = Math.round(oac.oacSuggested * 20) / 20; persist(); renderResultsSection(); });
   $('btnExportResultsCsv').addEventListener('click', () => exportResultsCsv(results));
   document.querySelectorAll('[data-export-chart]').forEach((btn) => {
-    btn.addEventListener('click', () => downloadChartPng(btn.dataset.exportChart, `${btn.dataset.exportChart}.png`));
+    btn.addEventListener('click', () => downloadChartPng(btn.dataset.exportChart, `${filenamePrefix()}${btn.dataset.exportChart}.png`));
   });
+}
+
+function filenamePrefix() {
+  const id = (state.sampleLabel || '').trim().replace(/[^a-zA-Z0-9ก-๙_-]+/g, '_');
+  return id ? `${id}_` : '';
 }
 
 function chartBlockHtml(canvasId, label) {
@@ -381,7 +388,7 @@ function renderSpecCheck(results, curves, criteria) {
 }
 
 function exportResultsCsv(results) {
-  const header = ['%AC', 'Gmb', '%Gmm', 'Air Voids (%)', 'VMA (%)', 'VFA (%)', `Stability (${state.unit})`, 'Flow (0.01")', `Stability/Flow (${state.unit}/0.01")`];
-  const rows = [header, ...results.map((r) => [r.ac, fmt(r.gmbAvg, 3), fmt(r.percentGmm, 1), fmt(r.airVoids, 2), fmt(r.vma, 2), fmt(r.vfa, 2), fmt(r.stabilityAvg, 0), fmt(r.flowAvg, 2), fmt(r.stabilityFlowRatio, 1)])];
-  downloadCSV('marshall-results.csv', rows);
+  const header = ['Sample ID', '%AC', 'Gmb', '%Gmm', 'Air Voids (%)', 'VMA (%)', 'VFA (%)', `Stability (${state.unit})`, 'Flow (0.01")', `Stability/Flow (${state.unit}/0.01")`];
+  const rows = [header, ...results.map((r) => [state.sampleLabel || '', r.ac, fmt(r.gmbAvg, 3), fmt(r.percentGmm, 1), fmt(r.airVoids, 2), fmt(r.vma, 2), fmt(r.vfa, 2), fmt(r.stabilityAvg, 0), fmt(r.flowAvg, 2), fmt(r.stabilityFlowRatio, 1)])];
+  downloadCSV(`${filenamePrefix()}marshall-results.csv`, rows);
 }

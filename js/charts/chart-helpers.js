@@ -93,18 +93,24 @@ function drawMarshallChart(canvasId, { title, yLabel, dataPoints, fitFn, xRange,
 const SAMPLE_COLORS = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
 
 /** เปรียบเทียบหลายตัวอย่างขนาดคละในกราฟเดียว พร้อมแถบ envelope มาตรฐาน */
-function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes }) {
+/**
+ * mode: 'power045' (FHWA/Superpave 0.45-power chart, เล็ก→ใหญ่ ซ้าย→ขวา)
+ *     | 'semilog'  (Geotechnical ASTM D422 style, ใหญ่→เล็ก ซ้าย→ขวา, log scale)
+ * yMax=110 เว้นพื้นที่ว่างด้านบน แต่ซ่อน label ที่ 110 (แสดงถึง 100 เท่านั้น)
+ */
+function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes, mode = 'power045', yMax = 110 }) {
   destroyChart(canvasId);
   const ctx = document.getElementById(canvasId).getContext('2d');
-  const p045 = (mm) => Math.pow(mm, 0.45);
+  const isLog = mode === 'semilog';
+  const xVal = (mm) => (isLog ? mm : Math.pow(mm, 0.45));
 
   const upperPts = [];
   const lowerPts = [];
   sieveSizes.forEach(({ mm }) => {
     const range = envelope[mm];
     if (range) {
-      upperPts.push({ x: p045(mm), y: range[1] });
-      lowerPts.push({ x: p045(mm), y: range[0] });
+      upperPts.push({ x: xVal(mm), y: range[1] });
+      lowerPts.push({ x: xVal(mm), y: range[0] });
     }
   });
   upperPts.sort((a, b) => a.x - b.x);
@@ -119,10 +125,17 @@ function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes }) 
     const color = SAMPLE_COLORS[i % SAMPLE_COLORS.length];
     const pts = sieveSizes
       .filter(({ mm }) => typeof s.gradation[mm] === 'number')
-      .map(({ mm }) => ({ x: p045(mm), y: s.gradation[mm] }))
+      .map(({ mm }) => ({ x: xVal(mm), y: s.gradation[mm] }))
       .sort((a, b) => a.x - b.x);
-    datasets.push({ label: s.name, data: pts, borderColor: color, backgroundColor: color, pointRadius: 4, borderWidth: 2, tension: 0.1 });
+    const label = s.id ? `${s.id} - ${s.name}` : s.name;
+    datasets.push({ label, data: pts, borderColor: color, backgroundColor: color, pointRadius: 4, borderWidth: 2, tension: 0.1 });
   });
+
+  const sieveLookup = (val) => {
+    const mm = isLog ? val : Math.pow(val, 1 / 0.45);
+    const match = sieveSizes.find((s) => Math.abs(s.mm - mm) / Math.max(mm, 0.001) < 0.03);
+    return match ? match.label : (isLog ? mm.toFixed(3) : mm.toFixed(2));
+  };
 
   chartInstances[canvasId] = new Chart(ctx, {
     type: 'line',
@@ -133,17 +146,24 @@ function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes }) 
       plugins: { legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 11 } } } },
       scales: {
         x: {
-          type: 'linear',
-          title: { display: true, text: 'ขนาดตะแกรง (mm^0.45)' },
+          type: isLog ? 'logarithmic' : 'linear',
+          reverse: isLog,
+          title: { display: true, text: isLog ? 'ขนาดตะแกรง (มม., semi-log)' : 'ขนาดตะแกรง (mm^0.45)' },
+          afterBuildTicks: (axis) => {
+            const values = [...new Set(sieveSizes.map((s) => xVal(s.mm)))].sort((a, b) => a - b);
+            axis.ticks = values.map((value) => ({ value }));
+          },
+          ticks: { callback: (val) => sieveLookup(val) },
+        },
+        y: {
+          title: { display: true, text: '% ผ่านตะแกรง' },
+          min: 0,
+          max: yMax,
           ticks: {
-            callback: (val) => {
-              const mm = Math.pow(val, 1 / 0.45);
-              const match = sieveSizes.find((s) => Math.abs(s.mm - mm) < 0.5);
-              return match ? match.label : mm.toFixed(2);
-            },
+            stepSize: 10,
+            callback: (val) => (val > 100 ? '' : val),
           },
         },
-        y: { title: { display: true, text: '% ผ่านตะแกรง' }, min: 0, max: 100 },
       },
     },
   });

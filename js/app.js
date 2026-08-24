@@ -21,6 +21,11 @@ function emptySample() {
   return gradation;
 }
 
+function nextSampleId() {
+  const n = (state.gradationSamples?.length || 0) + 1;
+  return `S-${String(n).padStart(2, '0')}`;
+}
+
 function emptyProject() {
   const std = cloneStandardDefaults();
   const criteria = { ...std.designCriteria.wearing_9_5 };
@@ -28,13 +33,16 @@ function emptyProject() {
     courseType: 'wearing_9_5',
     unit: 'lbs',
     flowUnit: '0.01in',
+    gradationChartStyle: 'power045',
+    sampleLabel: '',
     standard: std,
     criteria,
-    gradationSamples: [{ name: 'ตัวอย่างที่ 1', gradation: emptySample() }],
+    gradationSamples: [{ id: 'S-01', name: 'ตัวอย่างที่ 1', gradation: emptySample() }],
     aggregate: { gsb: null, gb: 1.02, penetrationGrade: '60-70' },
     trials: [],
     moistureTest: { controlStability: [], conditionedStability: [] },
     designAC: null,
+    rapCalc: { ingredients: [], targetTotalAC: null },
   };
 }
 
@@ -97,6 +105,7 @@ function init() {
 const TAB_META = {
   gradation: ['วิเคราะห์ขนาดคละมวลรวม', 'เทียบขนาดคละกับช่วงมาตรฐาน พล็อตกราฟและ export ได้'],
   marshall: ['Marshall Test & Optimum Asphalt Content', 'คำนวณ Stability/Flow/Va/VMA/VFA และหา OAC พร้อม export'],
+  rap: ['ตัวช่วยคำนวณมิกซ์ RAP', 'ผสมขนาดคละและคำนวณ %AC รวม เมื่อใช้ RAP แทนมวลรวมบางส่วน'],
 };
 
 function switchTab(tab) {
@@ -114,6 +123,7 @@ function switchTab(tab) {
 function renderTab(tab) {
   if (tab === 'gradation') renderGradationTab();
   if (tab === 'marshall') renderMarshallTab();
+  if (tab === 'rap') renderRapTab();
 }
 
 function computeTrialResult(trial) {

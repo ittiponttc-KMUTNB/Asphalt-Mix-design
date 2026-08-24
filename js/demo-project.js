@@ -38,6 +38,8 @@ function buildDemoProject() {
     courseType: 'wearing_12_5',
     unit: 'lbs',
     flowUnit: '0.01in',
+    gradationChartStyle: 'power045',
+    sampleLabel: 'วช.P-AC/245/2568',
     standard: std,
     criteria: {
       stability_lbs: 2200, stability_N: 9786,
@@ -50,8 +52,19 @@ function buildDemoProject() {
     },
     gradationSamples: [
       {
+        id: 'S-01',
         name: 'Hot Bin ผสม (ตัวอย่างอ้างอิง)',
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 83.0, 9.5: 57.2, 4.75: 44.6, 2.36: 32.7, 1.18: 22.8, 0.6: 15.3, 0.3: 9.8, 0.15: 6.7, 0.075: 5.3 },
+      },
+      {
+        id: 'S-02',
+        name: 'มวลรวมใหม่ (Virgin Aggregate)',
+        gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 92.0, 9.5: 68.0, 4.75: 50.0, 2.36: 34.0, 1.18: 22.0, 0.6: 14.0, 0.3: 9.0, 0.15: 6.0, 0.075: 4.5 },
+      },
+      {
+        id: 'S-03',
+        name: 'RAP (มวลรวมสกัดแล้ว)',
+        gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 95.0, 9.5: 85.0, 4.75: 60.0, 2.36: 40.0, 1.18: 28.0, 0.6: 20.0, 0.3: 14.0, 0.15: 9.0, 0.075: 6.0 },
       },
     ],
     aggregate: { gsb: 2.663, gb: 1.02, penetrationGrade: '40-50' },
@@ -61,5 +74,12 @@ function buildDemoProject() {
       conditionedStability: [1790, 1770, 1810],
     },
     designAC: 5.0,
+    rapCalc: {
+      ingredients: [
+        { sampleId: 'S-02', proportion: 60, ownAC: 0 },
+        { sampleId: 'S-03', proportion: 40, ownAC: 4.8 },
+      ],
+      targetTotalAC: 5.2,
+    },
   };
 }

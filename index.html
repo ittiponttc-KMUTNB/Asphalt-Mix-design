@@ -19,12 +19,18 @@
 
     <div class="nav-item active" data-tab="gradation"><span class="num">1</span> ขนาดคละมวลรวม</div>
     <div class="nav-item" data-tab="marshall"><span class="num">2</span> Marshall Test & OAC</div>
+    <div class="nav-item" data-tab="rap"><span class="num">3</span> ตัวช่วยคำนวณมิกซ์ RAP</div>
 
     <div class="sidebar-footer">
       <button class="btn btn-ghost btn-sm" id="btnNewProject">+ ชุดข้อมูลใหม่</button>
       <button class="btn btn-ghost btn-sm" id="btnLoadDemo">โหลดตัวอย่างอ้างอิง</button>
       <button class="btn btn-ghost btn-sm" id="btnImportProject">⬆ นำเข้าไฟล์ข้อมูล (.json)</button>
       <button class="btn btn-primary btn-sm" id="btnSaveProject">⬇ บันทึกไฟล์ข้อมูล (.json)</button>
+      <div class="credit-footer">
+        พัฒนาโดย<br/>
+        <span class="name">รศ.ดร.อิทธิพล มีผล</span><br/>
+        ภาควิชาครุศาสตร์โยธา มจพ.
+      </div>
     </div>
   </aside>
 
@@ -40,6 +46,7 @@
     <div class="tabs-content">
       <section id="tab-gradation" class="active"><div id="gradationContainer"></div></section>
       <section id="tab-marshall"><div id="marshallContainer"></div></section>
+      <section id="tab-rap"><div id="rapContainer"></div></section>
     </div>
   </main>
 </div>
@@ -59,5 +66,6 @@
 <script src="js/app.js"></script>
 <script src="js/tabs/gradation-tab.js"></script>
 <script src="js/tabs/marshall-tab.js"></script>
+<script src="js/tabs/rap-tab.js"></script>
 </body>
 </html>
