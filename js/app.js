@@ -28,7 +28,21 @@ function emptyRetainedWeights() {
 }
 
 function newGradationSample(id, name) {
-  return { id, name, inputMode: 'percent', gradation: emptySample(), retainedWeights: emptyRetainedWeights(), panWeight: null };
+  return {
+    id, name, inputMode: 'percent', gradation: emptySample(), retainedWeights: emptyRetainedWeights(), panWeight: null,
+    min: 0, max: 100, proportion: 0,
+  };
+}
+
+/** ตัวอย่างฟิลเลอร์เพิ่มเติม (Table 2 ทล.-ม.408/2532: ผ่าน#30=100%, ผ่าน#50=75-100%, ผ่าน#200=55-100%) ใช้ค่ากึ่งกลางเป็นค่าเริ่มต้น แก้ไขได้ */
+function newFillerSample(id) {
+  const s = newGradationSample(id, 'E: ฟิลเลอร์เพิ่มเติม');
+  s.min = 0; s.max = 10; s.proportion = 0;
+  SIEVE_SIZES.forEach(({ mm }) => { s.gradation[mm] = mm >= 0.6 ? 100 : null; });
+  s.gradation[0.3] = 87.5;
+  s.gradation[0.15] = 80;
+  s.gradation[0.075] = 77.5;
+  return s;
 }
 
 /** คำนวณ % ผ่านตะแกรงจากน้ำหนักค้างตะแกรง (ASTM C136/AASHTO T27) แล้วเขียนทับ sample.gradation */
@@ -56,6 +70,7 @@ function emptyProject() {
     unit: 'lbs',
     flowUnit: '0.01in',
     gradationChartStyle: 'power045',
+    gradationMode: 'compare',
     sampleLabel: '',
     standard: std,
     criteria,

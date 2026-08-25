@@ -98,7 +98,7 @@ const SAMPLE_COLORS = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#
  *     | 'semilog'  (Geotechnical ASTM D422 style, ใหญ่→เล็ก ซ้าย→ขวา, log scale)
  * yMax=110 เว้นพื้นที่ว่างด้านบน แต่ซ่อน label ที่ 110 (แสดงถึง 100 เท่านั้น)
  */
-function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes, mode = 'power045', yMax = 110 }) {
+function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes, mode = 'power045', yMax = 110, combined = null }) {
   destroyChart(canvasId);
   const ctx = document.getElementById(canvasId).getContext('2d');
   const isLog = mode === 'semilog';
@@ -130,6 +130,14 @@ function drawGradationCompareChart(canvasId, { samples, envelope, sieveSizes, mo
     const label = s.id ? `${s.id} - ${s.name}` : s.name;
     datasets.push({ label, data: pts, borderColor: color, backgroundColor: color, pointRadius: 4, borderWidth: 2, tension: 0.1 });
   });
+
+  if (combined) {
+    const pts = sieveSizes
+      .filter(({ mm }) => typeof combined.gradation[mm] === 'number')
+      .map(({ mm }) => ({ x: xVal(mm), y: combined.gradation[mm] }))
+      .sort((a, b) => a.x - b.x);
+    datasets.push({ label: combined.label || 'ผสมรวม (Combined)', data: pts, borderColor: '#0f172a', backgroundColor: '#0f172a', pointRadius: 5, pointStyle: 'rectRot', borderWidth: 3, tension: 0.1 });
+  }
 
   const sieveLookup = (val) => {
     const mm = isLog ? val : Math.pow(val, 1 / 0.45);

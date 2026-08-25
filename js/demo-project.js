@@ -38,6 +38,7 @@ function buildDemoProject() {
     unit: 'lbs',
     flowUnit: '0.01in',
     gradationChartStyle: 'power045',
+    gradationMode: 'compare',
     sampleLabel: 'วช.P-AC/245/2568',
     standard: std,
     criteria: {
@@ -57,6 +58,7 @@ function buildDemoProject() {
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 83.0, 9.5: 57.2, 4.75: 44.6, 2.36: 32.7, 1.18: 22.8, 0.6: 15.3, 0.3: 9.8, 0.15: 6.7, 0.075: 5.3 },
         retainedWeights: emptyRetainedWeights(),
         panWeight: null,
+        min: 0, max: 0, proportion: 0,
       },
       {
         id: 'S-02',
@@ -65,6 +67,7 @@ function buildDemoProject() {
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 92.0, 9.5: 68.0, 4.75: 50.0, 2.36: 34.0, 1.18: 22.0, 0.6: 14.0, 0.3: 9.0, 0.15: 6.0, 0.075: 4.5 },
         retainedWeights: emptyRetainedWeights(),
         panWeight: null,
+        min: 40, max: 80, proportion: 60,
       },
       {
         id: 'S-03',
@@ -73,6 +76,7 @@ function buildDemoProject() {
         gradation: { 37.5: 100, 25: 100, 19: 100, 12.5: 95.0, 9.5: 85.0, 4.75: 60.0, 2.36: 40.0, 1.18: 28.0, 0.6: 20.0, 0.3: 14.0, 0.15: 9.0, 0.075: 6.0 },
         retainedWeights: { 37.5: null, 25: null, 19: null, 12.5: 60, 9.5: 120, 4.75: 300, 2.36: 240, 1.18: 144, 0.6: 96, 0.3: 72, 0.15: 60, 0.075: 36 },
         panWeight: 72,
+        min: 20, max: 60, proportion: 40,
       },
     ],
     aggregate: { gsb: 2.663, gb: 1.02, penetrationGrade: '40-50' },

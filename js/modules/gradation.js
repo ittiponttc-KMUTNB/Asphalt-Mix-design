@@ -73,3 +73,82 @@ function combinedApparentSG(components) {
   const sumRatio = components.reduce((a, c) => a + (c.proportion || 0) / (c.apparentSG || 1), 0);
   return totalProportion / sumRatio;
 }
+
+/**
+ * หาสัดส่วนกอง (Cold Bin) ที่ทำให้ขนาดคละรวมเข้าใกล้ envelope มาตรฐานมากที่สุด
+ * ภายในขอบเขต min-max ของแต่ละกอง ด้วยวิธี local search (hill climbing + random restart)
+ * bins: array ของ { gradation, min, max } — ไม่แก้ bins ต้นฉบับ คืนค่าสัดส่วนใหม่เป็น array
+ */
+function solveColdBinProportions(bins, envelope, sieveSizes, options = {}) {
+  const n = bins.length;
+  const mins = bins.map((b) => b.min ?? 0);
+  const maxs = bins.map((b) => b.max ?? 100);
+  const restarts = options.restarts ?? 25;
+  const itersPerRestart = options.iterations ?? 800;
+
+  if (mins.reduce((a, b) => a + b, 0) > 100.01 || maxs.reduce((a, b) => a + b, 0) < 99.99) {
+    return { feasible: false, proportions: bins.map((b) => b.proportion ?? (mins[bins.indexOf(b)])), cost: Infinity };
+  }
+
+  function projectToSum100(values) {
+    const v = values.slice();
+    for (let pass = 0; pass < 60; pass++) {
+      const sum = v.reduce((a, b) => a + b, 0);
+      const diff = 100 - sum;
+      if (Math.abs(diff) < 1e-6) break;
+      const idxs = v.map((_, i) => i).filter((i) => (diff > 0 ? v[i] < maxs[i] - 1e-9 : v[i] > mins[i] + 1e-9));
+      if (!idxs.length) break;
+      const share = diff / idxs.length;
+      idxs.forEach((i) => { v[i] = Math.min(maxs[i], Math.max(mins[i], v[i] + share)); });
+    }
+    return v;
+  }
+
+  function penalty(props) {
+    const combined = combinedGradation(bins.map((b, i) => ({ proportion: props[i], gradation: b.gradation })), sieveSizes);
+    let cost = 0;
+    sieveSizes.forEach(({ mm }) => {
+      const range = envelope[mm];
+      if (!range) return;
+      const v = combined[mm];
+      if (v == null) return;
+      if (v < range[0]) cost += (range[0] - v) ** 2;
+      else if (v > range[1]) cost += (v - range[1]) ** 2;
+    });
+    return cost;
+  }
+
+  let best = null;
+  let bestCost = Infinity;
+
+  for (let r = 0; r < restarts; r++) {
+    let current = r === 0
+      ? projectToSum100(bins.map((b) => b.proportion ?? (mins[bins.indexOf(b)] + maxs[bins.indexOf(b)]) / 2))
+      : projectToSum100(mins.map((mn, i) => mn + Math.random() * (maxs[i] - mn)));
+    let currentCost = penalty(current);
+    let step = 8;
+    for (let iter = 0; iter < itersPerRestart; iter++) {
+      const i = Math.floor(Math.random() * n);
+      let j = Math.floor(Math.random() * n);
+      if (j === i) j = (j + 1) % n;
+      const maxDelta = Math.min(maxs[i] - current[i], current[j] - mins[j]);
+      if (maxDelta <= 0) continue;
+      const delta = Math.random() * Math.min(maxDelta, step);
+      const candidate = current.slice();
+      candidate[i] += delta;
+      candidate[j] -= delta;
+      const cost = penalty(candidate);
+      if (cost < currentCost) {
+        current = candidate;
+        currentCost = cost;
+      }
+      if (iter % 100 === 99) step = Math.max(0.2, step * 0.7);
+    }
+    if (currentCost < bestCost) {
+      bestCost = currentCost;
+      best = current;
+    }
+  }
+
+  return { feasible: true, proportions: best.map((v) => Math.round(v * 10) / 10), cost: bestCost };
+}
